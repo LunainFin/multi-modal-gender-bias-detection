@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Google Colab版本 - Instagram性别倾向多模态模型训练
-优化配置，GPU加速
+Google Colab Version - Instagram Gender Bias Multi-Modal Model Training
+Optimized configuration with GPU acceleration
 """
 
 import torch
@@ -27,10 +27,10 @@ import warnings
 import sys
 warnings.filterwarnings('ignore')
 
-# 设置环境变量避免tokenizer警告
+# Set environment variable to avoid tokenizer warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# 配置日志
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -41,30 +41,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Google Colab GPU检测
+# Google Colab GPU detection
 def check_gpu():
-    """检查GPU可用性"""
+    """Check GPU availability"""
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name()
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
-        logger.info(f"🚀 GPU可用: {gpu_name}")
-        logger.info(f"💾 显存: {gpu_memory:.1f} GB")
+        logger.info(f"🚀 GPU available: {gpu_name}")
+        logger.info(f"💾 VRAM: {gpu_memory:.1f} GB")
         return True
     else:
-        logger.warning("⚠️  未检测到GPU，将使用CPU训练")
+        logger.warning("⚠️  No GPU detected, will use CPU training")
         return False
 
 class ColabInstagramDataset(Dataset):
-    """Colab版本的Instagram数据集"""
+    """Colab version of Instagram dataset"""
     
     def __init__(self, csv_file, image_dir, tokenizer, max_length=128, image_size=224):
-        # 读取CSV，强制post_id为字符串
+        # Read CSV, force post_id as string
         self.df = pd.read_csv(csv_file, dtype={'post_id': str})
         self.image_dir = image_dir
         self.tokenizer = tokenizer
         self.max_length = max_length
         
-        # 图像预处理
+        # Image preprocessing
         from torchvision import transforms
         self.transform = transforms.Compose([
             transforms.Resize((image_size, image_size)),
@@ -73,16 +73,16 @@ class ColabInstagramDataset(Dataset):
                                std=[0.229, 0.224, 0.225])
         ])
         
-        # 过滤掉无效样本
+        # Filter out invalid samples
         self.valid_samples = []
         for idx, row in self.df.iterrows():
             post_id = str(row['post_id'])
             score = row['gender_bias_score']
             
-            # 检查图片文件是否存在
+            # Check if image file exists
             img_path = os.path.join(image_dir, f"{post_id}.jpg")
             if os.path.exists(img_path) and not pd.isna(score):
-                # 添加默认caption（简化版本）
+                # Add default caption (simplified version)
                 self.valid_samples.append({
                     'post_id': post_id,
                     'image_path': img_path,
@@ -98,7 +98,7 @@ class ColabInstagramDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.valid_samples[idx]
         
-        # 加载图像
+        # Load图像
         try:
             image = Image.open(sample['image_path']).convert('RGB')
             image = self.transform(image)
@@ -107,7 +107,7 @@ class ColabInstagramDataset(Dataset):
             # 返回空白图像
             image = torch.zeros(3, 224, 224)
         
-        # 处理文本
+        # Process文本
         caption = sample['caption']
         encoding = self.tokenizer(
             caption,
@@ -202,10 +202,10 @@ class ColabTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"🎯 使用设备: {self.device}")
         
-        # 初始化tokenizer
+        # Initializetokenizer
         self.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
         
-        # 训练历史
+        # Training历史
         self.history = {
             'epoch': [],
             'train_loss': [],
@@ -218,7 +218,7 @@ class ColabTrainer:
         """准备数据"""
         logger.info("📊 准备数据...")
         
-        # 创建数据集
+        # Create数据集
         dataset = ColabInstagramDataset(
             csv_file=self.csv_file,
             image_dir=self.image_dir,
@@ -232,7 +232,7 @@ class ColabTrainer:
             dataset, [train_size, val_size]
         )
         
-        # 创建数据加载器
+        # Create数据加载器
         self.train_loader = DataLoader(
             self.train_dataset, 
             batch_size=self.batch_size, 
@@ -337,7 +337,7 @@ class ColabTrainer:
                     
                     outputs = self.model(images, input_ids, attention_mask)
                     
-                    # 处理维度
+                    # Process维度
                     if outputs.dim() == 0:
                         outputs = outputs.unsqueeze(0)
                     if targets.dim() == 0:
@@ -378,10 +378,10 @@ class ColabTrainer:
             'history': self.history
         }
         
-        # 保存最新模型
+        # Save最新模型
         torch.save(checkpoint, 'latest_model.pth')
         
-        # 保存最佳模型
+        # Save最佳模型
         if is_best:
             torch.save(checkpoint, 'best_model.pth')
             logger.info("💾 保存最佳模型")
@@ -393,7 +393,7 @@ class ColabTrainer:
         # 准备数据
         self.prepare_data()
         
-        # 创建模型
+        # Create模型
         self.create_model()
         
         best_val_loss = float('inf')
@@ -403,10 +403,10 @@ class ColabTrainer:
         for epoch in range(1, self.num_epochs + 1):
             logger.info(f"\n🔄 Epoch {epoch}/{self.num_epochs}")
             
-            # 训练
+            # Training
             train_loss = self.train_epoch()
             
-            # 验证
+            # Validate
             val_loss, val_mae, val_r2, predictions, targets = self.validate()
             
             # 学习率调度
@@ -419,7 +419,7 @@ class ColabTrainer:
             self.history['val_mae'].append(val_mae)
             self.history['val_r2'].append(val_r2)
             
-            # 检查最佳模型
+            # Check最佳模型
             is_best = val_loss < best_val_loss
             if is_best:
                 best_val_loss = val_loss
@@ -427,7 +427,7 @@ class ColabTrainer:
             else:
                 patience_counter += 1
             
-            # 保存模型
+            # Save模型
             self.save_model(epoch, is_best)
             
             # 输出结果
@@ -490,7 +490,7 @@ def main():
     # GPU检测
     check_gpu()
     
-    # 配置Colab优化训练
+    # ConfigureColab优化训练
     trainer = ColabTrainer(
         csv_file='./train_10k_fast_results.csv',
         image_dir='./images',

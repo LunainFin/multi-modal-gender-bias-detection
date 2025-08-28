@@ -17,7 +17,7 @@ from tqdm import tqdm
 import signal
 import sys
 
-# 配置日志
+# Configure日志
 logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -39,17 +39,17 @@ class TrainDataProcessor:
         self.api_key = "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"
         self.model_name = "qwen/qwen2.5-vl-32b-instruct"  # 非免费版本
         
-        # 创建输出目录
+        # Create输出目录
         os.makedirs(self.output_dir, exist_ok=True)
         
         # 进度文件
         self.progress_file = os.path.join(self.output_dir, "progress.json")
         self.results_file = os.path.join(self.output_dir, "train_10k_results.csv")
         
-        # 加载或初始化进度
+        # Load或初始化进度
         self.progress = self.load_progress()
         
-        # 设置信号处理器（优雅退出）
+        # Setup信号处理器（优雅退出）
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
         
@@ -182,7 +182,7 @@ class TrainDataProcessor:
             with open(json_path, 'r', encoding='utf-8') as f:
                 post_data = json.load(f)
             
-            # 验证JSON中的ID是否匹配文件名
+            # ValidateJSON中的ID是否匹配文件名
             json_post_id = post_data.get('id')
             if json_post_id and json_post_id != post_id:
                 logger.warning(f"JSON文件名与内部ID不匹配: {json_filename} vs {json_post_id}")
@@ -348,14 +348,14 @@ class TrainDataProcessor:
         """
         logger.info(f"开始处理 {len(samples)} 个样本...")
         
-        # 初始化CSV文件
+        # InitializeCSV文件
         self.init_csv_file()
         
-        # 创建进度条
+        # Create进度条
         with tqdm(total=len(samples), desc="处理样本", initial=0) as pbar:
             for i, sample in enumerate(samples):
                 try:
-                    # 加载帖子数据
+                    # Load帖子数据
                     post_data = self.load_post_data(sample)
                     if post_data is None:
                         logger.warning(f"跳过样本: {sample['json_file']}")
@@ -374,7 +374,7 @@ class TrainDataProcessor:
                         'image_count': len(post_data['image_paths'])
                     }
                     
-                    # 保存结果
+                    # Save结果
                     self.save_result(result)
                     
                     # 更新统计
@@ -474,7 +474,7 @@ def main():
         processor.print_status()
         return
     
-    # 运行处理程序
+    # Run处理程序
     processor.run()
 
 

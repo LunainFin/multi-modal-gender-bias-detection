@@ -20,11 +20,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from train_fast_local import LightweightGenderBiasModel, FastInstagramDataset
 
-# 配置日志
+# Configure日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# 设置中文字体
+# Setup中文字体
 plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
@@ -40,10 +40,10 @@ class Model5KEvaluator:
         """加载训练好的模型"""
         logger.info(f"加载5K模型: {self.model_path}")
         
-        # 创建模型
+        # Create模型
         self.model = LightweightGenderBiasModel()
         
-        # 加载权重
+        # Load权重
         checkpoint = torch.load(self.model_path, map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.to(self.device)
@@ -59,7 +59,7 @@ class Model5KEvaluator:
         from transformers import DistilBertTokenizer
         tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
         
-        # 创建测试数据集
+        # Create测试数据集
         dataset = FastInstagramDataset(
             csv_file=self.csv_file,
             database_path=self.database_path,
@@ -68,7 +68,7 @@ class Model5KEvaluator:
             max_length=64
         )
         
-        # 创建数据加载器
+        # Create数据加载器
         test_loader = torch.utils.data.DataLoader(
             dataset, 
             batch_size=16, 
@@ -113,12 +113,12 @@ class Model5KEvaluator:
         predictions = np.array(predictions)
         targets = np.array(targets)
         
-        # 计算指标
+        # Calculate指标
         mae = mean_absolute_error(targets, predictions)
         rmse = np.sqrt(mean_squared_error(targets, predictions))
         r2 = r2_score(targets, predictions)
         
-        # 计算准确率（误差<=1, <=2的比例）
+        # Calculate准确率（误差<=1, <=2的比例）
         errors = np.abs(predictions - targets)
         acc_1 = np.mean(errors <= 1.0) * 100
         acc_2 = np.mean(errors <= 2.0) * 100
@@ -208,7 +208,7 @@ class Model5KEvaluator:
         
         plt.tight_layout()
         
-        # 保存图表
+        # Save图表
         plot_path = 'model_5k_evaluation.png'
         plt.savefig(plot_path, dpi=300, bbox_inches='tight')
         logger.info(f"📊 评估图表已保存: {plot_path}")
@@ -259,7 +259,7 @@ class Model5KEvaluator:
         acc2_improvement = model_5k_results['acc_2'] - model_2k_results['acc_2']
         print(f"{'准确率≤2':<15} {model_2k_results['acc_2']:<12.1f}% {model_5k_results['acc_2']:<12.1f}% {acc2_improvement:+.1f}%")
         
-        # 训练时间对比
+        # Training时间对比
         time_ratio = model_5k_results['training_time'] / model_2k_results['training_time']
         print(f"{'训练时间':<15} {model_2k_results['training_time']:<12.1f}min {model_5k_results['training_time']:<12.1f}min {time_ratio:.1f}x")
         
@@ -271,26 +271,26 @@ def main():
     """主函数"""
     logger.info("🚀 开始5K模型性能测试")
     
-    # 配置路径
+    # Configure路径
     model_path = '/Users/huangxinyue/Multi model distillation/fast_models_5k/fast_best_model.pth'
     csv_file = '/Users/huangxinyue/Multi model distillation/train_10k_results/train_10k_fast_results.csv'
     database_path = '/Users/huangxinyue/Downloads/Influencer brand database'
     
-    # 检查文件是否存在
+    # Check文件是否存在
     if not os.path.exists(model_path):
         logger.error(f"❌ 模型文件不存在: {model_path}")
         return
     
-    # 创建评估器
+    # Create评估器
     evaluator = Model5KEvaluator(model_path, csv_file, database_path)
     
-    # 加载模型
+    # Load模型
     evaluator.load_model()
     
     # 与2K模型对比评估
     results = evaluator.compare_with_2k_model()
     
-    # 生成评估图表
+    # Generate评估图表
     evaluator.create_evaluation_plots(results)
     
     logger.info("✅ 5K模型评估完成")

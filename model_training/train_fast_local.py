@@ -97,7 +97,7 @@ class FastInstagramDataset(Dataset):
         logger.info(f"✅ Valid samples: {len(self.valid_samples)}")
     
     def find_image_path(self, post_id):
-        """查找图片路径"""
+        """Find image path"""
         for i in range(1, 17):
             img_path = os.path.join(self.database_path, f'img_resized_{i}', f'{post_id}.jpg')
             if os.path.exists(img_path):
@@ -110,16 +110,16 @@ class FastInstagramDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.valid_samples[idx]
         
-        # 加载图像
+        # Load image
         try:
             image = Image.open(sample['image_path']).convert('RGB')
             image = self.transform(image)
         except Exception as e:
-            logger.warning(f"图像加载失败 {sample['post_id']}: {e}")
-            # 返回空白图像
+            logger.warning(f"Image loading failed {sample['post_id']}: {e}")
+            # Return blank image
             image = torch.zeros(3, 224, 224)
         
-        # 处理文本 - 简化版本
+        # Process text - simplified version
         caption = sample['caption']
         encoding = self.tokenizer(
             caption,
@@ -137,65 +137,65 @@ class FastInstagramDataset(Dataset):
         }
 
 class LightweightGenderBiasModel(nn.Module):
-    """轻量级多模态模型 - 针对速度优化"""
+    """Lightweight multi-modal model - optimized for speed"""
     
     def __init__(self, 
                  image_model='resnet18',
                  text_model='distilbert-base-uncased',
-                 hidden_dim=128,  # 减小隐藏层维度
+                 hidden_dim=128,  # Reduce hidden layer dimension
                  dropout_rate=0.2):
         super().__init__()
         
-        # 轻量级图像编码器
+        # Lightweight image encoder
         self.image_encoder = timm.create_model(image_model, pretrained=True, num_classes=0)
         image_dim = self.image_encoder.num_features
         
-        # 轻量级文本编码器
+        # Lightweight text encoder
         self.text_encoder = AutoModel.from_pretrained(text_model)
         text_dim = self.text_encoder.config.hidden_size
         
-        # 冻结更多层以加速训练
+        # Freeze more layers to accelerate training
         for param in self.text_encoder.embeddings.parameters():
             param.requires_grad = False
-        for param in self.text_encoder.transformer.layer[:3].parameters():  # 冻结前3层
+        for param in self.text_encoder.transformer.layer[:3].parameters():  # Freeze first 3 layers
             param.requires_grad = False
         
-        # 简化的特征融合层
+        # Simplified feature fusion layer
         fusion_dim = image_dim + text_dim
         self.fusion = nn.Sequential(
             nn.Linear(fusion_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(hidden_dim, 1),
-            nn.Sigmoid()  # 直接输出0-1范围
+            nn.Sigmoid()  # Direct output 0-1 range
         )
     
     def forward(self, images, input_ids, attention_mask):
-        # 图像特征
+        # Image features
         image_features = self.image_encoder(images)
         
-        # 文本特征 - 简化处理
+        # Text features - simplified processing
         text_outputs = self.text_encoder(input_ids=input_ids, attention_mask=attention_mask)
-        text_features = text_outputs.last_hidden_state.mean(dim=1)  # 平均池化
+        text_features = text_outputs.last_hidden_state.mean(dim=1)  # Average pooling
         
-        # 特征融合
+        # Feature fusion
         combined = torch.cat([image_features, text_features], dim=1)
         scores = self.fusion(combined).squeeze()
         
         return scores
 
 class FastTrainer:
-    """快速训练器"""
+    """Fast trainer"""
     
     def __init__(self, 
                  csv_file='/Users/huangxinyue/Multi model distillation/train_10k_results/train_10k_fast_results.csv',
                  database_path='/Users/huangxinyue/Downloads/Influencer brand database',
                  model_save_dir='/Users/huangxinyue/Multi model distillation/fast_models',
                  batch_size=32,
-                 learning_rate=5e-4,     # 提高学习率
-                 num_epochs=6,           # 大幅减少epoch数
+                 learning_rate=5e-4,     # Increase learning rate
+                 num_epochs=6,           # Greatly reduce number of epochs
                  test_size=0.2,
-                 max_samples=5000):      # 可选：限制样本数量
+                 max_samples=5000):      # Optional: limit sample count
         
         self.csv_file = csv_file
         self.database_path = database_path
@@ -206,17 +206,17 @@ class FastTrainer:
         self.test_size = test_size
         self.max_samples = max_samples
         
-        # 创建保存目录
+        # Create保存目录
         os.makedirs(model_save_dir, exist_ok=True)
         
         # 设备
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"使用设备: {self.device}")
         
-        # 初始化tokenizer
+        # Initializetokenizer
         self.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
         
-        # 训练历史
+        # Training历史
         self.history = {
             'epoch': [],
             'train_loss': [],
@@ -229,7 +229,7 @@ class FastTrainer:
         """准备数据"""
         logger.info("准备数据...")
         
-        # 创建快速数据集
+        # Create快速数据集
         dataset = FastInstagramDataset(
             csv_file=self.csv_file,
             database_path=self.database_path,
@@ -245,7 +245,7 @@ class FastTrainer:
             dataset, [train_size, val_size]
         )
         
-        # 创建数据加载器
+        # Create数据加载器
         self.train_loader = DataLoader(
             self.train_dataset, 
             batch_size=self.batch_size, 
@@ -357,7 +357,7 @@ class FastTrainer:
                     
                     outputs = self.model(images, input_ids, attention_mask)
                     
-                    # 处理维度
+                    # Process维度
                     if outputs.dim() == 0:
                         outputs = outputs.unsqueeze(0)
                     if targets.dim() == 0:
@@ -398,10 +398,10 @@ class FastTrainer:
             'history': self.history
         }
         
-        # 保存最新模型
+        # Save最新模型
         torch.save(checkpoint, os.path.join(self.model_save_dir, 'fast_latest_model.pth'))
         
-        # 保存最佳模型
+        # Save最佳模型
         if is_best:
             torch.save(checkpoint, os.path.join(self.model_save_dir, 'fast_best_model.pth'))
             logger.info("💾 保存最佳模型")
@@ -414,7 +414,7 @@ class FastTrainer:
         # 准备数据
         self.prepare_data()
         
-        # 创建模型
+        # Create模型
         self.create_model()
         
         best_val_loss = float('inf')
@@ -427,10 +427,10 @@ class FastTrainer:
             if DISABLE_TQDM:
                 logger.info(f"开始训练 Epoch {epoch}...")
             
-            # 训练
+            # Training
             train_loss = self.train_epoch()
             
-            # 验证
+            # Validate
             if DISABLE_TQDM:
                 logger.info(f"开始验证 Epoch {epoch}...")
             val_loss, val_mae, val_r2, predictions, targets = self.validate()
@@ -445,7 +445,7 @@ class FastTrainer:
             self.history['val_mae'].append(val_mae)
             self.history['val_r2'].append(val_r2)
             
-            # 检查最佳模型
+            # Check最佳模型
             is_best = val_loss < best_val_loss
             if is_best:
                 best_val_loss = val_loss
@@ -453,10 +453,10 @@ class FastTrainer:
             else:
                 patience_counter += 1
             
-            # 保存模型
+            # Save模型
             self.save_model(epoch, is_best)
             
-            # 计算时间
+            # Calculate时间
             epoch_time = datetime.now() - epoch_start
             total_time = datetime.now() - start_time
             
