@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-本地快速训练版本 - 1-2小时完成训练
-大幅优化配置，牺牲少量精度换取训练速度
+Local Fast Training Version - Complete training in 1-2 hours
+Heavily optimized configuration, trading small accuracy for training speed
 """
 
 import torch
@@ -27,21 +27,21 @@ import warnings
 import sys
 warnings.filterwarnings('ignore')
 
-# 设置环境变量避免tokenizer警告
+# Set environment variable to avoid tokenizer warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# 检测是否在后台运行
+# Detect if running in background
 def is_running_in_background():
-    """检测是否在后台运行（nohup或类似环境）"""
+    """Detect if running in background (nohup or similar environment)"""
     try:
         return not sys.stdout.isatty() or not sys.stdin.isatty()
     except:
         return True
 
-# 全局变量控制tqdm显示
+# Global variable to control tqdm display
 DISABLE_TQDM = is_running_in_background()
 
-# 配置日志
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -53,22 +53,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class FastInstagramDataset(Dataset):
-    """快速训练版Instagram数据集"""
+    """Fast training version Instagram dataset"""
     
     def __init__(self, csv_file, database_path, tokenizer, max_length=64, image_size=224, max_samples=None):
-        # 读取CSV，强制post_id为字符串
+        # Read CSV, force post_id as string
         df = pd.read_csv(csv_file, dtype={'post_id': str})
         
-        # 限制样本数量用于快速训练
+        # Limit sample count for fast training
         if max_samples:
             df = df.head(max_samples)
-            logger.info(f"⚡ 快速模式：限制样本数为 {max_samples}")
+            logger.info(f"⚡ Fast mode: limiting samples to {max_samples}")
         
         self.database_path = database_path
         self.tokenizer = tokenizer
         self.max_length = max_length
         
-        # 图像预处理 - 简化版本
+        # Image preprocessing - simplified version
         from torchvision import transforms
         self.transform = transforms.Compose([
             transforms.Resize((image_size, image_size)),
@@ -77,24 +77,24 @@ class FastInstagramDataset(Dataset):
                                std=[0.229, 0.224, 0.225])
         ])
         
-        # 过滤掉无效样本
+        # Filter out invalid samples
         self.valid_samples = []
         for idx, row in df.iterrows():
             post_id = str(row['post_id'])
             score = row['gender_bias_score']
             
             if not pd.isna(score):
-                # 查找图片路径
+                # Find image path
                 img_path = self.find_image_path(post_id)
                 if img_path:
                     self.valid_samples.append({
                         'post_id': post_id,
                         'image_path': img_path,
-                        'caption': f"Post {post_id}",  # 简化caption
-                        'score': float(score) / 10.0  # 标准化到0-1
+                        'caption': f"Post {post_id}",  # Simplified caption
+                        'score': float(score) / 10.0  # Normalize to 0-1
                     })
         
-        logger.info(f"✅ 有效样本数: {len(self.valid_samples)}")
+        logger.info(f"✅ Valid samples: {len(self.valid_samples)}")
     
     def find_image_path(self, post_id):
         """查找图片路径"""
