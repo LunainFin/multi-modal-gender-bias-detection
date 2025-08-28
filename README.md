@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Architecture Overview](visualization/architecture_diagram.png)
+![Architecture Overview](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/architecture_diagram.png)
 
 *A lightweight multi-modal AI system for analyzing gender bias in Instagram posts*
 
@@ -20,7 +20,7 @@ This project demonstrates how to build an efficient multi-modal AI system for de
 
 <div align="center">
 
-![Model Performance](visualization/model_performance_comparison.png)
+![Model Performance](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/model_performance_comparison.png)
 
 </div>
 
@@ -34,7 +34,7 @@ This project demonstrates how to build an efficient multi-modal AI system for de
 
 <div align="center">
 
-![Training Progress](visualization/training_curves.png)
+![Training Progress](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/training_curves.png)
 
 </div>
 
@@ -106,7 +106,7 @@ We started with an existing Instagram dataset containing:
 
 <div align="center">
 
-![Knowledge Distillation Process](visualization/knowledge_distillation_process.png)
+![Knowledge Distillation Process](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/knowledge_distillation_process.png)
 
 *Complete pipeline: from data collection to lightweight model deployment*
 
@@ -178,7 +178,7 @@ The main benefit is speed and cost:
 
 <div align="center">
 
-![Error Analysis](visualization/error_analysis.png)
+![Error Analysis](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/error_analysis.png)
 
 *Model prediction accuracy analysis: Most predictions are quite close to the large model*
 
@@ -198,7 +198,7 @@ We tested the trained model on a larger dataset to see if it could handle real-w
 
 <div align="center">
 
-![Scale Comparison](visualization/scale_comparison.png)
+![Scale Comparison](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/scale_comparison.png)
 
 *Dataset scale comparison: Processing capability across different model sizes*
 
