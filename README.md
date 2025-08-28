@@ -45,7 +45,7 @@ We started with an existing Instagram dataset containing:
 - Each post has: JSON metadata, image file, and text caption
 - Data was already collected and anonymized
 
-![Knowledge Distillation Process](knowledge_distillation_process.png)
+![Knowledge Distillation Process](images/distill.png)
 *Figure 1: The four main steps of our process: collect data, get labels from large model, train small model, deploy for analysis.*
 
 ### Step 2: Getting Labels from the Large Model
