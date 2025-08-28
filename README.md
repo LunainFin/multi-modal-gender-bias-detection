@@ -110,7 +110,8 @@ We started with an existing Instagram dataset containing:
 
 *Complete pipeline: from data collection to lightweight model deployment*
 
-</div>
+</div>![Knowledge Distillation Process](images/distill.png)
+*Figure 1: The four main steps of our process: collect data, get labels from large model, train small model, deploy for analysis.*
 
 ### Step 2: Getting Labels from the Large Model
 

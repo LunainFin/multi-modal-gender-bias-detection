@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-测试版本 - 使用当前目录的小样本数据测试程序功能
+Test Version - Use small sample data in current directory to test program functionality
 """
 
 import json
@@ -12,14 +12,14 @@ import time
 from typing import List, Dict, Optional
 import logging
 
-# 配置日志
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class SmallSampleTester:
     def __init__(self):
         """
-        使用当前目录的样本数据进行测试
+        Use sample data in current directory for testing
         """
         self.current_dir = "/Users/huangxinyue/Multi model distillation"
         self.api_key = "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"
@@ -27,16 +27,16 @@ class SmallSampleTester:
         
     def test_json_loading(self) -> None:
         """
-        测试JSON文件加载功能
+        Test JSON file loading functionality
         """
-        logger.info("测试JSON文件加载...")
+        logger.info("Testing JSON file loading...")
         
         json_dir = os.path.join(self.current_dir, "json_samples")
         json_files = [f for f in os.listdir(json_dir) if f.endswith('.json')]
         
-        logger.info(f"找到{len(json_files)}个JSON文件")
+        logger.info(f"Found {len(json_files)} JSON files")
         
-        # 测试加载第一个JSON文件
+        # Test loading the first JSON file
         if json_files:
             test_file = json_files[0]
             json_path = os.path.join(json_dir, test_file)
@@ -45,46 +45,58 @@ class SmallSampleTester:
                 with open(json_path, 'r', encoding='utf-8') as f:
                     post_data = json.load(f)
                 
-                # 提取caption
+                # Extract caption
                 caption = ""
                 if 'edge_media_to_caption' in post_data and post_data['edge_media_to_caption']['edges']:
                     caption = post_data['edge_media_to_caption']['edges'][0]['node']['text']
                 
-                logger.info(f"测试文件: {test_file}")
+                logger.info(f"Test file: {test_file}")
                 logger.info(f"Post ID: {post_data.get('id', 'N/A')}")
                 logger.info(f"Caption: {caption[:100]}...")
                 
                 return post_data, caption
                 
             except Exception as e:
-                logger.error(f"加载JSON文件失败: {e}")
+                logger.error(f"Failed to load JSON file: {e}")
                 return None, None
     
     def encode_sample_image(self) -> Optional[str]:
         """
-        创建一个测试用的简单图片（base64编码）
+        Create a test image for use (base64 encoded)
         """
-        # 创建一个简单的1x1像素的白色JPEG图片的base64数据
-        # 这是一个最小的有效JPEG文件
+        # Create a simple 1x1 pixel white JPEG image in base64 format
+        # This is a minimal valid JPEG file
         minimal_jpeg_base64 = "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwDX4P/Z"
         return f"data:image/jpeg;base64,{minimal_jpeg_base64}"
     
     def test_qwen_api_call(self, caption: str, image_url: str = None) -> None:
         """
-        测试Qwen API调用
+        Test Qwen API call
         """
-        logger.info("测试Qwen API调用...")
+        logger.info("Testing Qwen API call...")
         
         try:
-            # 构建API请求 - 先测试纯文本
+            # Build API request - test text-only first
             content = [
                 {
                     "type": "text", 
-                    "text": f"请根据以下Instagram帖子的内容判断其性别倾向程度，性别倾向越强分数越高。\n\n要求：\n1. 只返回一个0到10之间的数字\n2. 不要解释原因\n3. 格式：只输出数字，如：5.2\n\n帖子内容：{caption}"
+                    "text": f"""Analyze this Instagram post for gender bias. Consider the caption content: "{caption}"
+
+Rate the gender bias on a scale of 0-10:
+- 0-2: Strongly male-targeted (very masculine themes, male-dominated content)
+- 3-4: Somewhat male-targeted (slightly masculine lean)
+- 5: Gender-neutral (no clear gender targeting)
+- 6-7: Somewhat female-targeted (slightly feminine lean)
+- 8-10: Strongly female-targeted (very feminine themes, female-dominated content)
+
+Requirements:
+1. Return only a number between 0 and 10
+2. No explanation needed
+3. Format: Just output the number, e.g.: 5.2"""
                 }
             ]
             
-            # 如果有图片URL，添加图片（暂时注释掉以测试纯文本）
+            # If there's an image URL, add image (commented out for text-only testing)
             # if image_url:
             #     content.append({
             #         "type": "image_url",
@@ -112,7 +124,7 @@ class SmallSampleTester:
                 "X-Title": "Multi-Model Gender Bias Analysis Test"
             }
             
-            logger.info("发送API请求...")
+            logger.info("Sending API request...")
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
@@ -120,67 +132,67 @@ class SmallSampleTester:
                 timeout=30
             )
             
-            logger.info(f"API响应状态码: {response.status_code}")
+            logger.info(f"API response status code: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
                 content = result['choices'][0]['message']['content'].strip()
-                logger.info(f"API返回内容: {content}")
+                logger.info(f"API returned content: {content}")
                 
-                # 尝试提取分数
+                # Try to extract score
                 try:
                     score = float(content)
                     if 0 <= score <= 10:
-                        logger.info(f"✅ 成功获得分数: {score}")
+                        logger.info(f"✅ Successfully got score: {score}")
                         return score
                     else:
-                        logger.warning(f"⚠️ 分数超出范围: {score}")
+                        logger.warning(f"⚠️ Score out of range: {score}")
                 except ValueError:
                     import re
                     numbers = re.findall(r'\d+(?:\.\d+)?', content)
                     if numbers:
                         score = float(numbers[0])
                         if 0 <= score <= 10:
-                            logger.info(f"✅ 从文本中提取到分数: {score}")
+                            logger.info(f"✅ Extracted score from text: {score}")
                             return score
-                    logger.warning(f"⚠️ 无法解析分数: {content}")
+                    logger.warning(f"⚠️ Unable to parse score: {content}")
             else:
-                logger.error(f"❌ API调用失败: {response.status_code}")
-                logger.error(f"错误内容: {response.text}")
+                logger.error(f"❌ API call failed: {response.status_code}")
+                logger.error(f"Error content: {response.text}")
                 
         except Exception as e:
-            logger.error(f"❌ API调用异常: {e}")
+            logger.error(f"❌ API call exception: {e}")
     
     def run_test(self) -> None:
         """
-        运行测试流程
+        Run test workflow
         """
-        logger.info("🚀 开始测试程序功能...")
+        logger.info("🚀 Starting program functionality test...")
         
-        # 1. 测试JSON加载
+        # 1. Test JSON loading
         post_data, caption = self.test_json_loading()
         if not caption:
-            logger.error("❌ JSON加载测试失败，程序退出")
+            logger.error("❌ JSON loading test failed, program exiting")
             return
         
-        # 2. 准备测试图片
+        # 2. Prepare test image
         image_url = self.encode_sample_image()
-        logger.info(f"使用测试图片: {image_url}")
+        logger.info(f"Using test image: {image_url}")
         
-        # 3. 测试API调用（先只用文本）
-        logger.info("先测试纯文本API调用...")
+        # 3. Test API call (text-only first)
+        logger.info("Testing text-only API call first...")
         score = self.test_qwen_api_call(caption)
         
         if score is not None:
-            logger.info("✅ 所有测试通过！程序可以正常工作")
-            logger.info("💡 现在可以运行完整的extract_and_score_samples.py程序")
+            logger.info("✅ All tests passed! Program can work normally")
+            logger.info("💡 Now you can run the complete extract_and_score_samples_english.py program")
         else:
-            logger.error("❌ 测试失败，请检查API配置或网络连接")
+            logger.error("❌ Test failed, please check API configuration or network connection")
 
 
 def main():
     """
-    主测试入口
+    Main test entry point
     """
     tester = SmallSampleTester()
     tester.run_test()

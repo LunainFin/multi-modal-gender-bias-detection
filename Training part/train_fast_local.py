@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Local Fast Training Version - Complete training in 1-2 hours
-Heavily optimized configuration, trading small accuracy for training speed
+Heavily optimized configuration, trading slight accuracy for training speed
 """
 
 import torch
@@ -62,7 +62,7 @@ class FastInstagramDataset(Dataset):
         # Limit sample count for fast training
         if max_samples:
             df = df.head(max_samples)
-            logger.info(f"⚡ Fast mode: limiting samples to {max_samples}")
+            logger.info(f"⚡ Fast mode: Limited samples to {max_samples}")
         
         self.database_path = database_path
         self.tokenizer = tokenizer
@@ -137,12 +137,12 @@ class FastInstagramDataset(Dataset):
         }
 
 class LightweightGenderBiasModel(nn.Module):
-    """Lightweight multi-modal model - optimized for speed"""
+    """Lightweight multimodal model - optimized for speed"""
     
     def __init__(self, 
                  image_model='resnet18',
                  text_model='distilbert-base-uncased',
-                 hidden_dim=128,  # Reduce hidden layer dimension
+                 hidden_dim=128,  # Reduced hidden layer dimension
                  dropout_rate=0.2):
         super().__init__()
         
@@ -167,7 +167,7 @@ class LightweightGenderBiasModel(nn.Module):
             nn.ReLU(),
             nn.Dropout(dropout_rate),
             nn.Linear(hidden_dim, 1),
-            nn.Sigmoid()  # Direct output 0-1 range
+            nn.Sigmoid()  # Direct output to 0-1 range
         )
     
     def forward(self, images, input_ids, attention_mask):
@@ -192,8 +192,8 @@ class FastTrainer:
                  database_path='/Users/huangxinyue/Downloads/Influencer brand database',
                  model_save_dir='/Users/huangxinyue/Multi model distillation/fast_models',
                  batch_size=32,
-                 learning_rate=5e-4,     # Increase learning rate
-                 num_epochs=6,           # Greatly reduce number of epochs
+                 learning_rate=5e-4,     # Increased learning rate
+                 num_epochs=6,           # Significantly reduced epochs
                  test_size=0.2,
                  max_samples=5000):      # Optional: limit sample count
         
@@ -206,17 +206,17 @@ class FastTrainer:
         self.test_size = test_size
         self.max_samples = max_samples
         
-        # Create保存目录
+        # Create save directory
         os.makedirs(model_save_dir, exist_ok=True)
         
-        # 设备
+        # Device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        logger.info(f"使用设备: {self.device}")
+        logger.info(f"Using device: {self.device}")
         
-        # Initializetokenizer
+        # Initialize tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
         
-        # Training历史
+        # Training history
         self.history = {
             'epoch': [],
             'train_loss': [],
@@ -226,31 +226,31 @@ class FastTrainer:
         }
     
     def prepare_data(self):
-        """准备数据"""
-        logger.info("准备数据...")
+        """Prepare data"""
+        logger.info("Preparing data...")
         
-        # Create快速数据集
+        # Create fast dataset
         dataset = FastInstagramDataset(
             csv_file=self.csv_file,
             database_path=self.database_path,
             tokenizer=self.tokenizer,
-            max_length=64,  # 减少序列长度
+            max_length=64,  # Reduced sequence length
             max_samples=self.max_samples
         )
         
-        # 分割数据
+        # Split data
         train_size = int((1 - self.test_size) * len(dataset))
         val_size = len(dataset) - train_size
         self.train_dataset, self.val_dataset = torch.utils.data.random_split(
             dataset, [train_size, val_size]
         )
         
-        # Create数据加载器
+        # Create data loaders
         self.train_loader = DataLoader(
             self.train_dataset, 
             batch_size=self.batch_size, 
             shuffle=True,
-            num_workers=0,  # 避免多进程开销
+            num_workers=0,  # Avoid multiprocessing overhead
             pin_memory=False
         )
         
@@ -262,16 +262,16 @@ class FastTrainer:
             pin_memory=False
         )
         
-        logger.info(f"训练集: {len(self.train_dataset)} 样本")
-        logger.info(f"验证集: {len(self.val_dataset)} 样本")
+        logger.info(f"Training set: {len(self.train_dataset)} samples")
+        logger.info(f"Validation set: {len(self.val_dataset)} samples")
     
     def create_model(self):
-        """创建轻量级模型"""
-        logger.info("创建轻量级模型...")
+        """Create lightweight model"""
+        logger.info("Creating lightweight model...")
         
         self.model = LightweightGenderBiasModel().to(self.device)
         
-        # 损失函数和优化器
+        # Loss function and optimizer
         self.criterion = nn.MSELoss()
         self.optimizer = optim.AdamW(
             self.model.parameters(), 
@@ -279,23 +279,23 @@ class FastTrainer:
             weight_decay=1e-4
         )
         
-        # 更激进的学习率调度器
+        # More aggressive learning rate scheduler
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
             self.optimizer, 
             mode='min', 
             factor=0.5, 
-            patience=1,  # 非常激进的调度
+            patience=1,  # Very aggressive scheduling
             min_lr=1e-6
         )
         
-        # 模型信息
+        # Model information
         total_params = sum(p.numel() for p in self.model.parameters())
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        logger.info(f"总参数量: {total_params:,}")
-        logger.info(f"可训练参数: {trainable_params:,}")
+        logger.info(f"Total parameters: {total_params:,}")
+        logger.info(f"Trainable parameters: {trainable_params:,}")
     
     def train_epoch(self):
-        """训练一个epoch"""
+        """Train one epoch"""
         self.model.train()
         total_loss = 0
         num_batches = len(self.train_loader)
@@ -303,17 +303,17 @@ class FastTrainer:
         with tqdm(self.train_loader, desc='Training', disable=DISABLE_TQDM) as pbar:
             for batch_idx, batch in enumerate(pbar):
                 try:
-                    # 数据移至设备
+                    # Move data to device
                     images = batch['image'].to(self.device)
                     input_ids = batch['input_ids'].to(self.device)
                     attention_mask = batch['attention_mask'].to(self.device)
                     targets = batch['score'].to(self.device)
                     
-                    # 前向传播
+                    # Forward pass
                     self.optimizer.zero_grad()
                     outputs = self.model(images, input_ids, attention_mask)
                     
-                    # 确保维度匹配
+                    # Ensure dimension matching
                     if outputs.dim() == 0:
                         outputs = outputs.unsqueeze(0)
                     if targets.dim() == 0:
@@ -321,7 +321,7 @@ class FastTrainer:
                     
                     loss = self.criterion(outputs, targets)
                     
-                    # 反向传播
+                    # Backward pass
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                     self.optimizer.step()
@@ -329,19 +329,19 @@ class FastTrainer:
                     total_loss += loss.item()
                     pbar.set_postfix({'loss': f'{loss.item():.4f}'})
                     
-                    # 后台运行时的进度日志
-                    if DISABLE_TQDM and batch_idx % 50 == 0:  # 更频繁的日志
+                    # Progress logging for background mode
+                    if DISABLE_TQDM and batch_idx % 50 == 0:  # More frequent logging
                         progress_pct = (batch_idx / num_batches) * 100
-                        logger.info(f"  批次 {batch_idx}/{num_batches} ({progress_pct:.1f}%) - Loss: {loss.item():.4f}")
+                        logger.info(f"  Batch {batch_idx}/{num_batches} ({progress_pct:.1f}%) - Loss: {loss.item():.4f}")
                     
                 except Exception as e:
-                    logger.warning(f"训练批次 {batch_idx} 失败: {e}")
+                    logger.warning(f"Training batch {batch_idx} failed: {e}")
                     continue
         
         return total_loss / num_batches if num_batches > 0 else 0
     
     def validate(self):
-        """验证模型"""
+        """Validate model"""
         self.model.eval()
         total_loss = 0
         all_predictions = []
@@ -357,7 +357,7 @@ class FastTrainer:
                     
                     outputs = self.model(images, input_ids, attention_mask)
                     
-                    # Process维度
+                    # Handle dimensions
                     if outputs.dim() == 0:
                         outputs = outputs.unsqueeze(0)
                     if targets.dim() == 0:
@@ -366,7 +366,7 @@ class FastTrainer:
                     loss = self.criterion(outputs, targets)
                     total_loss += loss.item()
                     
-                    # 转换回原始分数范围[0,10]
+                    # Convert back to original score range [0,10]
                     predictions = outputs.cpu().numpy() * 10.0
                     targets_np = targets.cpu().numpy() * 10.0
                     
@@ -374,7 +374,7 @@ class FastTrainer:
                     all_targets.extend(targets_np)
                     
                 except Exception as e:
-                    logger.warning(f"验证批次失败: {e}")
+                    logger.warning(f"Validation batch failed: {e}")
                     continue
         
         avg_loss = total_loss / len(self.val_loader) if len(self.val_loader) > 0 else 0
@@ -389,7 +389,7 @@ class FastTrainer:
         return avg_loss, mae, r2, all_predictions, all_targets
     
     def save_model(self, epoch, is_best=False):
-        """保存模型"""
+        """Save model"""
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
@@ -398,54 +398,54 @@ class FastTrainer:
             'history': self.history
         }
         
-        # Save最新模型
+        # Save latest model
         torch.save(checkpoint, os.path.join(self.model_save_dir, 'fast_latest_model.pth'))
         
-        # Save最佳模型
+        # Save best model
         if is_best:
             torch.save(checkpoint, os.path.join(self.model_save_dir, 'fast_best_model.pth'))
-            logger.info("💾 保存最佳模型")
+            logger.info("💾 Saved best model")
     
     def train(self):
-        """完整训练流程"""
-        logger.info("🚀 开始快速训练...")
+        """Complete training workflow"""
+        logger.info("🚀 Starting fast training...")
         start_time = datetime.now()
         
-        # 准备数据
+        # Prepare data
         self.prepare_data()
         
-        # Create模型
+        # Create model
         self.create_model()
         
         best_val_loss = float('inf')
         patience_counter = 0
-        patience = 2  # 非常激进的早停
+        patience = 2  # Very aggressive early stopping
         
         for epoch in range(1, self.num_epochs + 1):
             epoch_start = datetime.now()
             logger.info(f"\n⚡ Epoch {epoch}/{self.num_epochs}")
             if DISABLE_TQDM:
-                logger.info(f"开始训练 Epoch {epoch}...")
+                logger.info(f"Starting training Epoch {epoch}...")
             
             # Training
             train_loss = self.train_epoch()
             
-            # Validate
+            # Validation
             if DISABLE_TQDM:
-                logger.info(f"开始验证 Epoch {epoch}...")
+                logger.info(f"Starting validation Epoch {epoch}...")
             val_loss, val_mae, val_r2, predictions, targets = self.validate()
             
-            # 学习率调度
+            # Learning rate scheduling
             self.scheduler.step(val_loss)
             
-            # 记录历史
+            # Record history
             self.history['epoch'].append(epoch)
             self.history['train_loss'].append(train_loss)
             self.history['val_loss'].append(val_loss)
             self.history['val_mae'].append(val_mae)
             self.history['val_r2'].append(val_r2)
             
-            # Check最佳模型
+            # Check best model
             is_best = val_loss < best_val_loss
             if is_best:
                 best_val_loss = val_loss
@@ -453,62 +453,62 @@ class FastTrainer:
             else:
                 patience_counter += 1
             
-            # Save模型
+            # Save model
             self.save_model(epoch, is_best)
             
-            # Calculate时间
+            # Calculate time
             epoch_time = datetime.now() - epoch_start
             total_time = datetime.now() - start_time
             
-            # 输出结果
-            logger.info(f"⏱️  Epoch用时: {epoch_time.total_seconds():.1f}s")
+            # Output results
+            logger.info(f"⏱️  Epoch time: {epoch_time.total_seconds():.1f}s")
             logger.info(f"📊 Train Loss: {train_loss:.4f}")
             logger.info(f"📊 Val Loss: {val_loss:.4f}, MAE: {val_mae:.4f}, R²: {val_r2:.4f}")
-            logger.info(f"⚙️  学习率: {self.optimizer.param_groups[0]['lr']:.2e}")
-            logger.info(f"🕐 总用时: {total_time.total_seconds()/60:.1f}分钟")
+            logger.info(f"⚙️  Learning rate: {self.optimizer.param_groups[0]['lr']:.2e}")
+            logger.info(f"🕐 Total time: {total_time.total_seconds()/60:.1f} minutes")
             
-            # 早停
+            # Early stopping
             if patience_counter >= patience:
-                logger.info(f"⏹️  验证损失在{patience}个epoch内没有改善，提前停止")
+                logger.info(f"⏹️  Validation loss hasn't improved for {patience} epochs, early stopping")
                 break
         
-        # 最终统计
+        # Final statistics
         total_time = datetime.now() - start_time
-        logger.info("🎉 快速训练完成！")
-        logger.info(f"🏆 最佳验证损失: {best_val_loss:.4f}")
-        logger.info(f"⏱️  总训练时间: {total_time.total_seconds()/60:.1f}分钟")
-        logger.info(f"💾 模型保存目录: {self.model_save_dir}")
+        logger.info("🎉 Fast training completed!")
+        logger.info(f"🏆 Best validation loss: {best_val_loss:.4f}")
+        logger.info(f"⏱️  Total training time: {total_time.total_seconds()/60:.1f} minutes")
+        logger.info(f"💾 Model save directory: {self.model_save_dir}")
 
 def main():
-    """主函数"""
+    """Main function"""
     
-    logger.info("⚡ 快速本地训练模式")
+    logger.info("⚡ Fast local training mode")
     
-    # 选择训练模式
-    print("\n🚀 选择快速训练模式:")
-    print("1. 🔥 极速模式 (2000样本, ~30分钟)")
-    print("2. ⚡ 快速模式 (5000样本, ~60分钟)")  
-    print("3. 🏃 标准模式 (全部样本, ~90分钟)")
+    # Choose training mode
+    print("\n🚀 Choose fast training mode:")
+    print("1. 🔥 Ultra-fast mode (2000 samples, ~30 minutes)")
+    print("2. ⚡ Fast mode (5000 samples, ~60 minutes)")  
+    print("3. 🏃 Standard mode (all samples, ~90 minutes)")
     
     try:
-        choice = input("请选择 (1-3，默认2): ").strip() or "2"
+        choice = input("Please choose (1-3, default 2): ").strip() or "2"
     except:
-        choice = "2"  # 后台运行时默认选择
+        choice = "2"  # Default choice for background running
     
     if choice == "1":
         max_samples = 2000
         epochs = 5
-        logger.info("🔥 极速模式：2000样本，预计30分钟")
+        logger.info("🔥 Ultra-fast mode: 2000 samples, estimated 30 minutes")
     elif choice == "3":
         max_samples = None
         epochs = 6
-        logger.info("🏃 标准模式：全部样本，预计90分钟")
+        logger.info("🏃 Standard mode: all samples, estimated 90 minutes")
     else:
         max_samples = 5000
         epochs = 6
-        logger.info("⚡ 快速模式：5000样本，预计60分钟")
+        logger.info("⚡ Fast mode: 5000 samples, estimated 60 minutes")
     
-    # 快速训练配置
+    # Fast training configuration
     trainer = FastTrainer(
         csv_file='/Users/huangxinyue/Multi model distillation/train_10k_results/train_10k_fast_results.csv',
         database_path='/Users/huangxinyue/Downloads/Influencer brand database',
@@ -520,14 +520,8 @@ def main():
         max_samples=max_samples
     )
     
-    # 开始训练
+    # Start training
     trainer.train()
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
