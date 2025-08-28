@@ -82,7 +82,7 @@ class ModelTester:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"使用设备: {self.device}")
         
-        # Initializetokenizer
+        # 初始化tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained('distilbert-base-uncased')
         
         # 图像预处理
@@ -93,17 +93,17 @@ class ModelTester:
                                std=[0.229, 0.224, 0.225])
         ])
         
-        # Load模型
+        # 加载模型
         self.load_model()
     
     def load_model(self):
         """加载训练好的模型"""
         logger.info(f"加载模型: {self.model_path}")
         
-        # Create模型
+        # 创建模型
         self.model = LightweightGenderBiasModel()
         
-        # Load权重
+        # 加载权重
         checkpoint = torch.load(self.model_path, map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.to(self.device)
@@ -132,11 +132,11 @@ class ModelTester:
             return None, "图片未找到"
         
         try:
-            # Load和预处理图像
+            # 加载和预处理图像
             image = Image.open(img_path).convert('RGB')
             image_tensor = self.transform(image).unsqueeze(0).to(self.device)
             
-            # Process文本
+            # 处理文本
             encoding = self.tokenizer(
                 caption,
                 truncation=True,
@@ -195,7 +195,7 @@ class ModelTester:
             logger.error("没有有效的预测结果！")
             return
         
-        # Calculate指标
+        # 计算指标
         mae = mean_absolute_error(targets, predictions)
         rmse = np.sqrt(mean_squared_error(targets, predictions))
         r2 = r2_score(targets, predictions)
@@ -292,7 +292,7 @@ def main():
     print("🧪 测试快速训练的模型")
     print("=" * 50)
     
-    # Create测试器
+    # 创建测试器
     tester = ModelTester()
     
     # 显示预测示例

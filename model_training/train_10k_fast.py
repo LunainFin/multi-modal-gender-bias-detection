@@ -48,14 +48,14 @@ class FastTrainDataProcessor:
         self.max_concurrent = 8  # 最大并发数
         self.semaphore = asyncio.Semaphore(self.max_concurrent)
         
-        # Create输出目录
+        # 创建输出目录
         os.makedirs(self.output_dir, exist_ok=True)
         
         # 进度文件
         self.progress_file = os.path.join(self.output_dir, "progress_fast.json")
         self.results_file = os.path.join(self.output_dir, "train_10k_fast_results.csv")
         
-        # Load或初始化进度
+        # 加载或初始化进度
         self.progress = self.load_progress()
         self.results_lock = Lock()
         
@@ -168,7 +168,7 @@ class FastTrainDataProcessor:
             with open(json_path, 'r', encoding='utf-8') as f:
                 post_data = json.load(f)
             
-            # ValidateJSON中的ID是否匹配文件名
+            # 验证JSON中的ID是否匹配文件名
             json_post_id = post_data.get('id')
             if json_post_id and json_post_id != post_id:
                 logger.warning(f"JSON文件名与内部ID不匹配: {json_filename} vs {json_post_id}")
@@ -325,7 +325,7 @@ class FastTrainDataProcessor:
     async def process_single_sample(self, session, sample: Dict, pbar) -> Dict:
         """处理单个样本"""
         try:
-            # Load帖子数据
+            # 加载帖子数据
             post_data = self.load_post_data(sample)
             if post_data is None:
                 result = {
@@ -347,7 +347,7 @@ class FastTrainDataProcessor:
                 'image_count': len(post_data['image_paths'])
             }
             
-            # Save结果
+            # 保存结果
             self.save_result(result)
             
             # 更新统计
@@ -370,13 +370,13 @@ class FastTrainDataProcessor:
         """异步批量处理样本"""
         logger.info(f"开始并发处理 {len(samples)} 个样本...")
         
-        # InitializeCSV文件
+        # 初始化CSV文件
         self.init_csv_file()
         
-        # Create进度条
+        # 创建进度条
         with tqdm(total=len(samples), desc="并发处理") as pbar:
             async with aiohttp.ClientSession() as session:
-                # Create任务列表
+                # 创建任务列表
                 tasks = []
                 for sample in samples:
                     task = self.process_single_sample(session, sample, pbar)
@@ -477,14 +477,14 @@ class FastTrainDataProcessor:
         """同步处理样本（用于已有事件循环的环境）"""
         logger.info(f"开始同步处理 {len(samples)} 个样本...")
         
-        # InitializeCSV文件
+        # 初始化CSV文件
         self.init_csv_file()
         
-        # Create进度条
+        # 创建进度条
         with tqdm(total=len(samples), desc="处理样本") as pbar:
             for i, sample in enumerate(samples):
                 try:
-                    # Load帖子数据
+                    # 加载帖子数据
                     post_data = self.load_post_data(sample)
                     if post_data is None:
                         logger.warning(f"跳过样本: {sample['json_file']}")
@@ -503,7 +503,7 @@ class FastTrainDataProcessor:
                         'image_count': len(post_data['image_paths'])
                     }
                     
-                    # Save结果
+                    # 保存结果
                     self.save_result(result)
                     
                     # 更新统计
