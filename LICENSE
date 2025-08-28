@@ -1,0 +1,61 @@
+MIT License
+
+Copyright (c) 2024 Multi-Modal Gender Bias Detection Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Additional Terms for Academic and Commercial Use
+
+### Academic Use
+This software is provided free of charge for academic research purposes. 
+If you use this software in your research, please cite our work:
+
+```bibtex
+@article{multimodal_gender_bias_2024,
+  title={Multi-Modal Knowledge Distillation for Large-Scale Gender Bias Detection in Social Media},
+  author={Your Name Here},
+  journal={arXiv preprint arXiv:2024.XXXXX},
+  year={2024}
+}
+```
+
+### Commercial Use
+Commercial use of this software is permitted under the MIT License. 
+However, we kindly request that:
+1. You acknowledge the use of this software in your commercial products
+2. You consider contributing back improvements to the open source community
+3. You respect the privacy and ethical implications of bias detection systems
+
+### Data Privacy and Ethics
+Users of this software are responsible for:
+1. Ensuring compliance with applicable data protection laws (GDPR, CCPA, etc.)
+2. Obtaining proper consent for processing personal data
+3. Using the bias detection results responsibly and ethically
+4. Not using this software for discriminatory purposes
+
+### Model and Data Attribution
+- The architecture and training methods are original work
+- Pre-trained models (ResNet18, DistilBERT) retain their respective licenses
+- Training data should be used in accordance with platform terms of service
+- Qwen-VL model usage follows their licensing terms
+
+For questions about licensing or commercial partnerships, please contact:
+[Your Email Address]

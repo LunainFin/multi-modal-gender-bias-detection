@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-08-27T06:33:54.736539",
+  "stage": "analysis_completed",
+  "scan_progress": {
+    "completed_files": 1601046,
+    "total_files": 1601046,
+    "brand_posts_found": 33829
+  },
+  "analysis_progress": {
+    "completed_posts": 33829,
+    "total_posts": 33829
+  },
+  "data": {}
+}

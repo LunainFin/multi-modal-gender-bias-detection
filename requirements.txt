@@ -1,0 +1,115 @@
+# Multi-Modal Gender Bias Detection System
+# Core Dependencies for Production Use
+
+# =====================================
+# Deep Learning Framework
+# =====================================
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# =====================================
+# Transformers and Pre-trained Models
+# =====================================
+transformers>=4.30.0
+timm>=0.9.0
+huggingface-hub>=0.15.0
+
+# =====================================
+# Data Processing and Analysis
+# =====================================
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# =====================================
+# Computer Vision
+# =====================================
+Pillow>=9.5.0
+opencv-python>=4.8.0
+albumentations>=1.3.0
+
+# =====================================
+# Visualization and Plotting
+# =====================================
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# =====================================
+# Progress and Utilities
+# =====================================
+tqdm>=4.65.0
+click>=8.1.0
+colorama>=0.4.6
+rich>=13.0.0
+
+# =====================================
+# API and Web Requests
+# =====================================
+requests>=2.31.0
+aiohttp>=3.8.0
+httpx>=0.24.0
+
+# =====================================
+# Configuration and Environment
+# =====================================
+python-dotenv>=1.0.0
+pyyaml>=6.0
+configparser>=5.3.0
+
+# =====================================
+# Async and Concurrent Processing
+# =====================================
+asyncio-throttle>=1.0.2
+concurrent-futures>=3.1.1
+
+# =====================================
+# Model Serialization and Storage
+# =====================================
+joblib>=1.3.0
+pickle5>=0.0.12
+
+# =====================================
+# Logging and Monitoring
+# =====================================
+loguru>=0.7.0
+wandb>=0.15.0  # Optional: for experiment tracking
+tensorboard>=2.13.0  # Optional: for visualization
+
+# =====================================
+# Testing and Development (Optional)
+# =====================================
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.7.0
+flake8>=6.0.0
+isort>=5.12.0
+
+# =====================================
+# Jupyter Notebook Support (Optional)
+# =====================================
+jupyter>=1.0.0
+ipywidgets>=8.0.0
+notebook>=6.5.0
+
+# =====================================
+# GPU Memory Management (Optional)
+# =====================================
+gpustat>=1.1.0
+py3nvml>=0.2.7
+
+# =====================================
+# Version Constraints for Stability
+# =====================================
+# Ensure compatibility between packages
+typing-extensions>=4.7.0
+packaging>=23.1
+filelock>=3.12.0
+
+# =====================================
+# Optional: For advanced features
+# =====================================
+# faiss-cpu>=1.7.4  # For similarity search
+# redis>=4.6.0      # For caching
+# celery>=5.3.0     # For distributed processing
