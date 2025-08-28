@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-多模态品牌推理系统
-对筛选出的品牌帖子进行真正的多模态推理（图片+文本）
+Multimodal Brand Inference System
+Perform true multimodal inference (image + text) on filtered brand posts
 """
 
 import pandas as pd
@@ -17,16 +17,16 @@ from PIL import Image
 import sys
 import ast
 
-# 导入模型
+# Import model
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from train_fast_local import LightweightGenderBiasModel
 
-# 设置环境变量避免冲突
+# Set environment variables to avoid conflicts
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# 检测是否在后台运行
+# Detect if running in background
 def is_running_in_background():
-    """检测是否在后台运行"""
+    """Detect if running in background"""
     try:
         return not sys.stdout.isatty() or not sys.stdin.isatty()
     except:
@@ -34,7 +34,7 @@ def is_running_in_background():
 
 DISABLE_TQDM = is_running_in_background()
 
-# 设置日志
+# Setup logging
 logging.basicConfig(
     level=logging.INFO, 
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -47,58 +47,58 @@ logger = logging.getLogger(__name__)
 
 class MultimodalBrandInference:
     def __init__(self):
-        """初始化多模态品牌推理系统"""
+        """Initialize multimodal brand inference system"""
         self.brand_results_file = '/Users/huangxinyue/Multi model distillation/brand_analysis_results/brand_analysis_final.csv'
         self.database_path = '/Users/huangxinyue/Downloads/Influencer brand database'
         self.post_info_file = os.path.join(self.database_path, 'post_info.txt')
         self.json_dir = os.path.join(self.database_path, 'json')
         self.model_path = '/Users/huangxinyue/Multi model distillation/fast_models_5k/fast_best_model.pth'
         
-        # 输出和进度文件
+        # Output and progress files
         self.output_dir = '/Users/huangxinyue/Multi model distillation/multimodal_results'
         self.progress_file = os.path.join(self.output_dir, 'multimodal_progress.json')
         self.final_results_file = os.path.join(self.output_dir, 'multimodal_brand_analysis.csv')
         
-        # 确保输出目录存在
+        # Ensure output directory exists
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # 模型相关
+        # Model related
         self.model = None
         self.tokenizer = None
         self.transform = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        # 数据映射
-        self.json_to_images = {}  # JSON文件名 -> 图片ID列表
+        # Data mapping
+        self.json_to_images = {}  # JSON filename -> image ID list
         
-        logger.info(f"🚀 多模态品牌推理系统初始化完成")
-        logger.info(f"📊 使用设备: {self.device}")
+        logger.info(f"🚀 Multimodal brand inference system initialized")
+        logger.info(f"📊 Using device: {self.device}")
     
     def load_progress(self):
-        """加载进度"""
+        """Load progress"""
         if os.path.exists(self.progress_file):
             try:
                 with open(self.progress_file, 'r') as f:
                     progress = json.load(f)
-                logger.info(f"📈 继续推理，已处理 {progress.get('processed', 0)} 个帖子")
+                logger.info(f"📈 Resuming inference, already processed {progress.get('processed', 0)} posts")
                 return progress
             except Exception as e:
-                logger.warning(f"读取进度失败，从头开始: {e}")
+                logger.warning(f"Failed to read progress, starting from beginning: {e}")
         
         return {'processed': 0, 'results': []}
     
     def save_progress(self, progress):
-        """保存进度"""
+        """Save progress"""
         try:
             progress['timestamp'] = datetime.now().isoformat()
             with open(self.progress_file, 'w') as f:
                 json.dump(progress, f, indent=2)
         except Exception as e:
-            logger.error(f"保存进度失败: {e}")
+            logger.error(f"Failed to save progress: {e}")
     
     def load_post_info_mapping(self):
-        """加载post_info.txt中JSON->图片的映射"""
-        logger.info("📚 加载post_info映射...")
+        """Load JSON->image mapping from post_info.txt"""
+        logger.info("📚 Loading post_info mapping...")
         
         try:
             with open(self.post_info_file, 'r', encoding='utf-8') as f:
@@ -106,15 +106,15 @@ class MultimodalBrandInference:
                     try:
                         parts = line.strip().split('\t')
                         if len(parts) >= 5:
-                            # 格式: 索引号 用户名 类型 JSON文件名 图片ID列表
+                            # Format: index username type JSON_filename image_ID_list
                             json_filename = parts[3]
                             image_list_str = parts[4]
                             
-                            # 解析图片ID列表
+                            # Parse image ID list
                             try:
                                 image_ids = ast.literal_eval(image_list_str)
                                 if isinstance(image_ids, list):
-                                    # 去掉.jpg后缀，保留ID
+                                    # Remove .jpg suffix, keep ID only
                                     image_ids = [img.replace('.jpg', '') for img in image_ids]
                                     self.json_to_images[json_filename] = image_ids
                             except:
@@ -123,32 +123,32 @@ class MultimodalBrandInference:
                     except Exception as e:
                         continue
                     
-                    # 每50万行显示进度
+                    # Show progress every 500k lines
                     if (line_num + 1) % 500000 == 0:
-                        logger.info(f"  已处理 {line_num + 1:,} 行，找到 {len(self.json_to_images):,} 个映射")
+                        logger.info(f"  Processed {line_num + 1:,} lines, found {len(self.json_to_images):,} mappings")
             
-            logger.info(f"✅ 成功加载 {len(self.json_to_images):,} 个JSON->图片映射")
+            logger.info(f"✅ Successfully loaded {len(self.json_to_images):,} JSON->image mappings")
             
         except Exception as e:
-            logger.error(f"❌ 加载post_info失败: {e}")
+            logger.error(f"❌ Failed to load post_info: {e}")
             raise
     
     def load_inference_model(self):
-        """加载推理模型"""
-        logger.info("🚀 加载5K最佳多模态模型...")
+        """Load inference model"""
+        logger.info("🚀 Loading 5K best multimodal model...")
         
-        # 加载模型
+        # Load model
         self.model = LightweightGenderBiasModel()
         checkpoint = torch.load(self.model_path, map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.model.to(self.device)
         self.model.eval()
         
-        # 加载tokenizer
+        # Load tokenizer
         from transformers import DistilBertTokenizer
         self.tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
         
-        # 图像预处理
+        # Image preprocessing
         from torchvision import transforms
         self.transform = transforms.Compose([
             transforms.Resize((224, 224)),
@@ -157,13 +157,13 @@ class MultimodalBrandInference:
                                std=[0.229, 0.224, 0.225])
         ])
         
-        logger.info("✅ 多模态模型加载完成")
+        logger.info("✅ Multimodal model loading completed")
     
     def find_image_paths(self, image_ids):
-        """查找图片文件路径"""
+        """Find image file paths"""
         image_paths = []
         for image_id in image_ids:
-            # 在各个img_resized目录中查找
+            # Search in various img_resized directories
             for i in range(1, 17):
                 dir_path = os.path.join(self.database_path, f'img_resized_{i}')
                 image_path = os.path.join(dir_path, f'{image_id}.jpg')
@@ -172,34 +172,100 @@ class MultimodalBrandInference:
                     break
         return image_paths
     
+    def analyze_rgb_colors(self, image):
+        """Analyze RGB color distribution of image"""
+        try:
+            # Convert to numpy array
+            image_array = np.array(image)
+            
+            # Calculate average RGB values
+            red_mean = image_array[:, :, 0].mean()
+            green_mean = image_array[:, :, 1].mean()
+            blue_mean = image_array[:, :, 2].mean()
+            
+            # Calculate red-blue ratio
+            red_blue_ratio = red_mean / (blue_mean + 1e-6)  # Avoid division by zero
+            
+            # Calculate red-blue dominance
+            red_dominance = red_mean - blue_mean  # Positive = more red, negative = more blue
+            
+            return {
+                'red_mean': float(red_mean),
+                'green_mean': float(green_mean),
+                'blue_mean': float(blue_mean),
+                'red_blue_ratio': float(red_blue_ratio),
+                'red_dominance': float(red_dominance)
+            }
+            
+        except Exception as e:
+            logger.warning(f"RGB analysis failed: {e}")
+            return {
+                'red_mean': 0.0,
+                'green_mean': 0.0,
+                'blue_mean': 0.0,
+                'red_blue_ratio': 1.0,
+                'red_dominance': 0.0
+            }
+    
     def load_images(self, image_paths):
-        """加载和预处理图片"""
+        """Load and preprocess images, perform RGB analysis"""
         images = []
-        for image_path in image_paths[:3]:  # 最多处理3张图片
+        rgb_analyses = []
+        
+        for image_path in image_paths[:3]:  # Process up to 3 images
             try:
                 image = Image.open(image_path).convert('RGB')
+                
+                # RGB color analysis (before conversion)
+                rgb_analysis = self.analyze_rgb_colors(image)
+                rgb_analyses.append(rgb_analysis)
+                
+                # Convert to model input format
                 image_tensor = self.transform(image)
                 images.append(image_tensor)
+                
             except Exception as e:
-                logger.warning(f"图片加载失败 {image_path}: {e}")
+                logger.warning(f"Image loading failed {image_path}: {e}")
                 continue
         
-        if not images:
-            # 如果没有图片，返回黑色图片
-            return torch.zeros(1, 3, 224, 224)
-        elif len(images) == 1:
-            return images[0].unsqueeze(0)
+        # Merge RGB analysis results
+        if rgb_analyses:
+            # Calculate average RGB features for multiple images
+            avg_rgb = {
+                'red_mean': np.mean([r['red_mean'] for r in rgb_analyses]),
+                'green_mean': np.mean([r['green_mean'] for r in rgb_analyses]),
+                'blue_mean': np.mean([r['blue_mean'] for r in rgb_analyses]),
+                'red_blue_ratio': np.mean([r['red_blue_ratio'] for r in rgb_analyses]),
+                'red_dominance': np.mean([r['red_dominance'] for r in rgb_analyses])
+            }
         else:
-            # 多张图片取平均
-            return torch.stack(images).mean(dim=0).unsqueeze(0)
+            avg_rgb = {
+                'red_mean': 0.0,
+                'green_mean': 0.0,
+                'blue_mean': 0.0,
+                'red_blue_ratio': 1.0,
+                'red_dominance': 0.0
+            }
+        
+        # Process image tensors
+        if not images:
+            # If no images, return black image
+            image_tensor = torch.zeros(1, 3, 224, 224)
+        elif len(images) == 1:
+            image_tensor = images[0].unsqueeze(0)
+        else:
+            # Multiple images: take average
+            image_tensor = torch.stack(images).mean(dim=0).unsqueeze(0)
+        
+        return image_tensor, avg_rgb
     
     def multimodal_inference(self, json_id, caption, image_paths):
-        """多模态推理（图片+文本）"""
+        """Multimodal inference (image + text)"""
         try:
-            # 1. 处理图片
-            image_tensor = self.load_images(image_paths)
+            # 1. Process images and get RGB analysis
+            image_tensor, rgb_analysis = self.load_images(image_paths)
             
-            # 2. 处理文本
+            # 2. Process text
             encoding = self.tokenizer(
                 caption,
                 truncation=True,
@@ -208,50 +274,58 @@ class MultimodalBrandInference:
                 return_tensors='pt'
             )
             
-            # 3. 移到设备
+            # 3. Move to device
             image_tensor = image_tensor.to(self.device)
             input_ids = encoding['input_ids'].to(self.device)
             attention_mask = encoding['attention_mask'].to(self.device)
             
-            # 4. 多模态推理
+            # 4. Multimodal inference
             with torch.no_grad():
                 output = self.model(image_tensor, input_ids, attention_mask)
-                score = output.item() * 10.0  # 反归一化到0-10
-                score = max(0.0, min(10.0, score))  # 限制范围
+                score = output.item() * 10.0  # Denormalize to 0-10
+                score = max(0.0, min(10.0, score))  # Limit range
             
-            return round(score, 2), len(image_paths)
+            return round(score, 2), len(image_paths), rgb_analysis
             
         except Exception as e:
-            logger.warning(f"多模态推理失败 {json_id}: {e}")
-            return 5.0, 0  # 默认中性分数
+            logger.warning(f"Multimodal inference failed {json_id}: {e}")
+            # Return default values including default RGB analysis
+            default_rgb = {
+                'red_mean': 0.0,
+                'green_mean': 0.0,
+                'blue_mean': 0.0,
+                'red_blue_ratio': 1.0,
+                'red_dominance': 0.0
+            }
+            return 5.0, 0, default_rgb  # Default neutral score
     
     def process_brand_posts(self):
-        """处理品牌帖子进行多模态推理"""
-        logger.info("🔍 读取筛选出的品牌帖子...")
+        """Process brand posts for multimodal inference"""
+        logger.info("🔍 Reading filtered brand posts...")
         
-        # 读取第一阶段的结果
+        # Read first stage results
         if not os.path.exists(self.brand_results_file):
-            logger.error(f"❌ 品牌筛选结果文件不存在: {self.brand_results_file}")
+            logger.error(f"❌ Brand filtering results file does not exist: {self.brand_results_file}")
             return
         
         brand_df = pd.read_csv(self.brand_results_file)
-        logger.info(f"✅ 读取到 {len(brand_df)} 个品牌帖子")
+        logger.info(f"✅ Read {len(brand_df)} brand posts")
         
-        # 加载进度
+        # Load progress
         progress = self.load_progress()
         processed_count = progress['processed']
         results = progress.get('results', [])
         
-        # 从断点开始处理
+        # Start processing from checkpoint
         posts_to_process = brand_df.iloc[processed_count:]
-        logger.info(f"📈 从第 {processed_count} 个帖子开始多模态推理")
-        logger.info(f"📋 剩余处理: {len(posts_to_process)} 个帖子")
+        logger.info(f"📈 Starting multimodal inference from post {processed_count}")
+        logger.info(f"📋 Remaining to process: {len(posts_to_process)} posts")
         
-        save_interval = 100  # 每100个帖子保存一次
+        save_interval = 100  # Save every 100 posts
         batch_start_time = datetime.now()
         
         with tqdm(posts_to_process.iterrows(), 
-                  desc="多模态推理", 
+                  desc="Multimodal Inference", 
                   total=len(posts_to_process),
                   disable=DISABLE_TQDM) as pbar:
             
@@ -262,7 +336,7 @@ class MultimodalBrandInference:
                     sponsored = row['sponsored']
                     brand = row['brand']
                     
-                    # 1. 从JSON文件获取caption
+                    # 1. Get caption from JSON file
                     json_file = os.path.join(self.json_dir, f'{json_id}.json')
                     caption = ""
                     
@@ -275,19 +349,19 @@ class MultimodalBrandInference:
                             if caption_edges:
                                 caption = caption_edges[0].get('node', {}).get('text', '')
                         except Exception as e:
-                            logger.warning(f"读取JSON失败 {json_id}: {e}")
+                            logger.warning(f"Failed to read JSON {json_id}: {e}")
                     
-                    # 2. 从post_info.txt获取图片ID
+                    # 2. Get image IDs from post_info.txt
                     json_filename = f'{json_id}.json'
                     image_ids = self.json_to_images.get(json_filename, [])
                     
-                    # 3. 查找实际图片路径
+                    # 3. Find actual image paths
                     image_paths = self.find_image_paths(image_ids)
                     
-                    # 4. 多模态推理
-                    gender_score, image_count = self.multimodal_inference(json_id, caption, image_paths)
+                    # 4. Multimodal inference and RGB analysis
+                    gender_score, image_count, rgb_analysis = self.multimodal_inference(json_id, caption, image_paths)
                     
-                    # 5. 保存结果
+                    # 5. Save results (including RGB analysis)
                     result = {
                         'json_id': json_id,
                         'influencer_name': influencer_name,
@@ -295,57 +369,66 @@ class MultimodalBrandInference:
                         'brand': brand,
                         'gender_bias_score': gender_score,
                         'image_count': image_count,
-                        'caption_length': len(caption) if caption else 0
+                        'caption_length': len(caption) if caption else 0,
+                        'red_mean': rgb_analysis['red_mean'],
+                        'green_mean': rgb_analysis['green_mean'],
+                        'blue_mean': rgb_analysis['blue_mean'],
+                        'red_blue_ratio': rgb_analysis['red_blue_ratio'],
+                        'red_dominance': rgb_analysis['red_dominance']
                     }
                     
                     results.append(result)
                     processed_count += 1
                     
-                    # 更新进度条
+                    # Update progress bar
                     if not DISABLE_TQDM:
+                        # Determine color tendency
+                        color_tendency = "Red" if rgb_analysis['red_dominance'] > 0 else "Blue"
                         pbar.set_postfix({
                             'Brand': brand[:8],
                             'Score': f"{gender_score:.1f}",
                             'Images': image_count,
+                            'Color': color_tendency,
                             'Sponsored': 'Y' if sponsored else 'N'
                         })
                     
-                    # 后台模式的进度日志
+                    # Background mode progress logging
                     if DISABLE_TQDM and (row_idx + 1) % 50 == 0:
-                        logger.info(f"  已处理 {processed_count}/{len(brand_df)} 个帖子 "
+                        color_info = "red tendency" if rgb_analysis['red_dominance'] > 0 else "blue tendency"
+                        logger.info(f"  Processed {processed_count}/{len(brand_df)} posts "
                                   f"({processed_count/len(brand_df)*100:.1f}%) - "
-                                  f"最新: {brand} {gender_score:.1f}分")
+                                  f"Latest: {brand} {gender_score:.1f} score {color_info}")
                     
-                    # 定期保存
+                    # Periodic save
                     if len(results) % save_interval == 0:
-                        # 保存进度
+                        # Save progress
                         progress_data = {
                             'processed': processed_count,
                             'results': results
                         }
                         self.save_progress(progress_data)
                         
-                        # 保存CSV
+                        # Save CSV
                         self.save_results(results)
                         
-                        # 显示批次统计
+                        # Show batch statistics
                         batch_time = (datetime.now() - batch_start_time).total_seconds()
                         speed = save_interval / batch_time
                         remaining = len(brand_df) - processed_count
                         eta_minutes = remaining / speed / 60
                         
-                        logger.info(f"💾 已保存 {processed_count} 个结果")
-                        logger.info(f"⚡ 处理速度: {speed:.1f} 帖子/秒")
-                        logger.info(f"⏰ 预计剩余: {eta_minutes:.1f} 分钟")
+                        logger.info(f"💾 Saved {processed_count} results")
+                        logger.info(f"⚡ Processing speed: {speed:.1f} posts/sec")
+                        logger.info(f"⏰ Estimated remaining: {eta_minutes:.1f} minutes")
                         
                         batch_start_time = datetime.now()
                         
                 except Exception as e:
-                    logger.error(f"处理帖子失败 {row.get('json_id', 'unknown')}: {e}")
+                    logger.error(f"Failed to process post {row.get('json_id', 'unknown')}: {e}")
                     processed_count += 1
                     continue
         
-        # 保存最终结果
+        # Save final results
         progress_data = {
             'processed': processed_count,
             'results': results
@@ -353,93 +436,112 @@ class MultimodalBrandInference:
         self.save_progress(progress_data)
         self.save_results(results)
         
-        logger.info(f"🎉 多模态推理完成！处理了 {len(results)} 个帖子")
+        logger.info(f"🎉 Multimodal inference completed! Processed {len(results)} posts")
         return results
     
     def save_results(self, results):
-        """保存结果到CSV"""
+        """Save results to CSV"""
         if not results:
             return
         
         df = pd.DataFrame(results)
         df.to_csv(self.final_results_file, index=False)
         
-        # 显示统计信息
+        # Show statistics
         total = len(df)
         success_with_images = (df['image_count'] > 0).sum()
         avg_score = df['gender_bias_score'].mean()
+        red_dominant = (df['red_dominance'] > 0).sum()
+        blue_dominant = (df['red_dominance'] < 0).sum()
+        neutral_color = (df['red_dominance'] == 0).sum()
+        avg_red_dominance = df['red_dominance'].mean()
         
-        logger.info(f"💾 结果已保存: {self.final_results_file}")
-        logger.info(f"📊 有图片的帖子: {success_with_images}/{total} ({success_with_images/total*100:.1f}%)")
-        logger.info(f"📊 平均性别倾向分数: {avg_score:.2f}")
+        logger.info(f"💾 Results saved: {self.final_results_file}")
+        logger.info(f"📊 Posts with images: {success_with_images}/{total} ({success_with_images/total*100:.1f}%)")
+        logger.info(f"📊 Average gender bias score: {avg_score:.2f}")
+        logger.info(f"🎨 Color distribution: Red tendency {red_dominant} posts ({red_dominant/total*100:.1f}%), "
+                   f"Blue tendency {blue_dominant} posts ({blue_dominant/total*100:.1f}%), "
+                   f"Neutral {neutral_color} posts ({neutral_color/total*100:.1f}%)")
+        logger.info(f"🎨 Average red-blue dominance value: {avg_red_dominance:.2f}")
     
     def show_final_statistics(self, results):
-        """显示最终统计信息"""
+        """Show final statistics"""
         df = pd.DataFrame(results)
         
-        logger.info("📊 多模态推理最终统计:")
+        logger.info("📊 Final multimodal inference statistics:")
         logger.info("=" * 60)
-        logger.info(f"总帖子数: {len(df):,}")
-        logger.info(f"涉及品牌: {df['brand'].nunique()} 个")
-        logger.info(f"涉及博主: {df['influencer_name'].nunique():,} 个")
-        logger.info(f"赞助帖子: {df['sponsored'].sum():,} ({df['sponsored'].mean()*100:.1f}%)")
-        logger.info(f"有图片帖子: {(df['image_count'] > 0).sum():,} ({(df['image_count'] > 0).mean()*100:.1f}%)")
-        logger.info(f"平均图片数: {df['image_count'].mean():.2f}")
-        logger.info(f"平均性别倾向分数: {df['gender_bias_score'].mean():.2f} ± {df['gender_bias_score'].std():.2f}")
+        logger.info(f"Total posts: {len(df):,}")
+        logger.info(f"Brands involved: {df['brand'].nunique()} brands")
+        logger.info(f"Influencers involved: {df['influencer_name'].nunique():,} influencers")
+        logger.info(f"Sponsored posts: {df['sponsored'].sum():,} ({df['sponsored'].mean()*100:.1f}%)")
+        logger.info(f"Posts with images: {(df['image_count'] > 0).sum():,} ({(df['image_count'] > 0).mean()*100:.1f}%)")
+        logger.info(f"Average image count: {df['image_count'].mean():.2f}")
+        logger.info(f"Average gender bias score: {df['gender_bias_score'].mean():.2f} ± {df['gender_bias_score'].std():.2f}")
         
-        logger.info(f"\n🏆 各品牌多模态分析结果 (Top 10):")
+        # RGB color statistics
+        red_dominant = (df['red_dominance'] > 0).sum()
+        blue_dominant = (df['red_dominance'] < 0).sum()
+        neutral_color = (df['red_dominance'] == 0).sum()
+        logger.info(f"🎨 Color distribution:")
+        logger.info(f"  Red tendency: {red_dominant:,} ({red_dominant/len(df)*100:.1f}%)")
+        logger.info(f"  Blue tendency: {blue_dominant:,} ({blue_dominant/len(df)*100:.1f}%)")
+        logger.info(f"  Neutral: {neutral_color:,} ({neutral_color/len(df)*100:.1f}%)")
+        logger.info(f"🎨 Average red-blue dominance value: {df['red_dominance'].mean():.2f} ± {df['red_dominance'].std():.2f}")
+        logger.info(f"🎨 Average red-blue ratio: {df['red_blue_ratio'].mean():.2f} ± {df['red_blue_ratio'].std():.2f}")
+        
+        logger.info(f"\n🏆 Top 10 brand multimodal analysis results:")
         brand_stats = df.groupby('brand').agg({
             'gender_bias_score': ['count', 'mean', 'std'],
             'sponsored': 'mean',
-            'image_count': 'mean'
+            'image_count': 'mean',
+            'red_dominance': 'mean',
+            'red_blue_ratio': 'mean'
         }).round(3)
         
-        brand_stats.columns = ['帖子数', '平均分数', '分数标准差', '赞助率', '平均图片数']
-        brand_stats = brand_stats.sort_values('帖子数', ascending=False)
+        brand_stats.columns = ['Post Count', 'Avg Score', 'Score Std', 'Sponsor Rate', 'Avg Images', 'Red-Blue Tendency', 'Red-Blue Ratio']
+        brand_stats = brand_stats.sort_values('Post Count', ascending=False)
         
         print("\n" + brand_stats.head(10).to_string())
         
-        logger.info(f"\n💾 最终结果文件: {self.final_results_file}")
+        logger.info(f"\n💾 Final results file: {self.final_results_file}")
     
     def run_multimodal_inference(self):
-        """运行完整的多模态推理"""
-        logger.info("🚀 开始多模态品牌推理系统")
+        """Run complete multimodal inference"""
+        logger.info("🚀 Starting multimodal brand inference system")
         
         start_time = datetime.now()
         
         try:
-            # 1. 加载post_info映射
+            # 1. Load post_info mapping
             self.load_post_info_mapping()
             
-            # 2. 加载推理模型
+            # 2. Load inference model
             self.load_inference_model()
             
-            # 3. 处理品牌帖子
+            # 3. Process brand posts
             results = self.process_brand_posts()
             
-            # 4. 显示最终统计
+            # 4. Show final statistics
             self.show_final_statistics(results)
             
-            # 5. 计算总时间
+            # 5. Calculate total time
             total_time = datetime.now() - start_time
-            logger.info(f"⏱️ 总推理时间: {total_time.total_seconds()/60:.1f} 分钟")
-            logger.info("🎉 多模态品牌推理完成！")
+            logger.info(f"⏱️ Total inference time: {total_time.total_seconds()/60:.1f} minutes")
+            logger.info("🎉 Multimodal brand inference completed!")
             
         except Exception as e:
-            logger.error(f"❌ 多模态推理失败: {e}")
+            logger.error(f"❌ Multimodal inference failed: {e}")
             raise
 
 def main():
-    """主函数"""
-    logger.info("🎯 Instagram品牌多模态推理系统")
-    logger.info("目标: 对33,829个品牌帖子进行图片+文本推理")
+    """Main function"""
+    logger.info("🎯 Instagram Brand Multimodal Inference System")
+    logger.info("Objective: Perform image+text inference on 33,829 brand posts")
     logger.info("=" * 60)
     
-    # 运行多模态推理
+    # Run multimodal inference
     inferencer = MultimodalBrandInference()
     inferencer.run_multimodal_inference()
 
 if __name__ == "__main__":
     main()
-
-
