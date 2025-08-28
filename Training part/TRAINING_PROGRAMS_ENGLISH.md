@@ -152,6 +152,3 @@ Key parameters in `FastTrainer`:
 - No multiprocessing overhead
 - Simplified image preprocessing
 
----
-
-*All programs are fully translated to English while maintaining complete functionality and compatibility with the original Chinese versions.*
