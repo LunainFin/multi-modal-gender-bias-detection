@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-小批量测试程序 - 使用当前目录的样本数据验证完整流程
+Small Batch Testing Program - Validate complete workflow using sample data in current directory
 """
 
 import json
@@ -13,32 +13,32 @@ from typing import List, Dict, Optional
 import csv
 import logging
 
-# 配置日志
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class SmallBatchProcessor:
     def __init__(self):
         """
-        使用当前目录的样本数据进行批量处理测试（所有可用样本）
+        Batch processing test using sample data in current directory (all available samples)
         """
         self.current_dir = "/Users/huangxinyue/Multi model distillation"
         self.api_key = "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"
         self.model_name = "qwen/qwen2.5-vl-32b-instruct:free"
         self.results = []
         
-        # 创建输出目录
+        # Create output directory
         self.output_dir = os.path.join(self.current_dir, "batch_all_results")
         os.makedirs(self.output_dir, exist_ok=True)
     
     def load_sample_data(self) -> List[Dict]:
         """
-        加载当前目录的样本数据
+        Load sample data from current directory
         """
-        logger.info("加载样本数据...")
+        logger.info("Loading sample data...")
         
         json_dir = os.path.join(self.current_dir, "json_samples")
-        json_files = [f for f in os.listdir(json_dir) if f.endswith('.json')]  # 处理所有可用样本
+        json_files = [f for f in os.listdir(json_dir) if f.endswith('.json')]  # Process all available samples
         
         samples = []
         for json_file in json_files:
@@ -47,7 +47,7 @@ class SmallBatchProcessor:
                 with open(json_path, 'r', encoding='utf-8') as f:
                     post_data = json.load(f)
                 
-                # 提取caption
+                # Extract caption
                 caption = ""
                 if 'edge_media_to_caption' in post_data and post_data['edge_media_to_caption']['edges']:
                     caption = post_data['edge_media_to_caption']['edges'][0]['node']['text']
@@ -61,21 +61,21 @@ class SmallBatchProcessor:
                 })
                 
             except Exception as e:
-                logger.warning(f"加载{json_file}失败: {e}")
+                logger.warning(f"Failed to load {json_file}: {e}")
         
-        logger.info(f"成功加载{len(samples)}个样本")
+        logger.info(f"Successfully loaded {len(samples)} samples")
         return samples
     
     def call_qwen_api(self, caption: str) -> Optional[dict]:
         """
-        调用Qwen API进行性别偏见评分（纯文本版本）
+        Call Qwen API for gender bias scoring (text-only version)
         """
         try:
-            # 构建API请求
+            # Build API request
             content = [
                 {
                     "type": "text",
-                    "text": f"请根据以下Instagram帖子的内容判断其性别倾向程度，性别倾向越强分数越高。\n\n要求：\n1. 先给出0到10之间的数字分数\n2. 然后用一句话解释打分原因\n3. 格式：分数: X.X | 原因: [解释]\n\n帖子内容：{caption}"
+                    "text": f"Please evaluate the gender bias level of this Instagram post on a scale of 0-10, where higher scores indicate stronger gender orientation.\n\nRequirements:\n1. First provide a numerical score between 0 and 10\n2. Then explain the reasoning in one sentence\n3. Format: Score: X.X | Reason: [explanation]\n\nPost content: {caption}"
                 }
             ]
             
@@ -87,7 +87,7 @@ class SmallBatchProcessor:
                         "content": content
                     }
                 ],
-                "max_tokens": 100,  # 增加token数量以容纳解释
+                "max_tokens": 100,  # Increase token count to accommodate explanation
                 "temperature": 0.1
             }
             
@@ -98,7 +98,7 @@ class SmallBatchProcessor:
                 "X-Title": "Multi-Model Gender Bias Analysis"
             }
             
-            # 发送API请求
+            # Send API request
             response = requests.post(
                 url="https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
@@ -110,68 +110,68 @@ class SmallBatchProcessor:
                 result = response.json()
                 content = result['choices'][0]['message']['content'].strip()
                 
-                # 解析分数和解释
+                # Parse score and explanation
                 try:
-                    # 尝试按格式解析: "分数: X.X | 原因: [解释]"
+                    # Try to parse format: "Score: X.X | Reason: [explanation]"
                     if '|' in content:
                         parts = content.split('|')
                         score_part = parts[0].strip()
                         reason_part = parts[1].strip() if len(parts) > 1 else ""
                         
-                        # 提取分数
+                        # Extract score
                         import re
                         score_match = re.search(r'(\d+(?:\.\d+)?)', score_part)
                         if score_match:
                             score = float(score_match.group(1))
                             if 0 <= score <= 10:
-                                # 提取解释
-                                reason = reason_part.replace('原因:', '').replace('原因：', '').strip()
+                                # Extract explanation
+                                reason = reason_part.replace('Reason:', '').replace('原因:', '').replace('原因：', '').strip()
                                 return {
                                     'score': score,
                                     'reason': reason,
                                     'raw_response': content
                                 }
                         
-                    # 备用解析方式：如果格式不标准，尝试提取数字
+                    # Backup parsing method: if format is non-standard, try to extract numbers
                     numbers = re.findall(r'\d+(?:\.\d+)?', content)
                     if numbers:
                         score = float(numbers[0])
                         if 0 <= score <= 10:
                             return {
                                 'score': score,
-                                'reason': content,  # 整个回复作为解释
+                                'reason': content,  # Use entire response as explanation
                                 'raw_response': content
                             }
                     
-                    logger.warning(f"无法解析返回的分数和解释: {content}")
+                    logger.warning(f"Unable to parse returned score and explanation: {content}")
                     return None
                     
                 except Exception as e:
-                    logger.warning(f"解析响应时出错: {e}, 原始内容: {content}")
+                    logger.warning(f"Error parsing response: {e}, original content: {content}")
                     return None
             else:
-                logger.error(f"API调用失败: {response.status_code} - {response.text}")
+                logger.error(f"API call failed: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            logger.error(f"API调用异常: {e}")
+            logger.error(f"API call exception: {e}")
             return None
     
     def process_samples(self, samples: List[Dict]) -> None:
         """
-        处理样本并保存结果
+        Process samples and save results
         """
-        logger.info(f"开始处理{len(samples)}个样本...")
+        logger.info(f"Starting to process {len(samples)} samples...")
         
         for i, sample in enumerate(samples):
             if (i + 1) % 5 == 0 or i == 0 or i == len(samples) - 1:
-                logger.info(f"处理第{i+1}/{len(samples)}个样本: {sample['post_id']}")
+                logger.info(f"Processing sample {i+1}/{len(samples)}: {sample['post_id']}")
             
             try:
-                # 调用API获取分数和解释
+                # Call API to get score and explanation
                 api_result = self.call_qwen_api(sample['caption'])
                 
-                # 保存结果
+                # Save results
                 result = {
                     'post_id': sample['post_id'],
                     'caption': sample['caption'][:200] + "..." if len(sample['caption']) > 200 else sample['caption'],
@@ -184,31 +184,31 @@ class SmallBatchProcessor:
                 self.results.append(result)
                 
                 if api_result is not None:
-                    logger.info(f"✅ 获得分数: {api_result['score']}")
-                    logger.info(f"💭 解释: {api_result['reason']}")
+                    logger.info(f"✅ Obtained score: {api_result['score']}")
+                    logger.info(f"💭 Explanation: {api_result['reason']}")
                 else:
-                    logger.warning(f"⚠️ 分数获取失败")
+                    logger.warning(f"⚠️ Failed to obtain score")
                 
-                # 每5个样本显示一次进度统计
+                # Show progress statistics every 5 samples
                 if (i + 1) % 5 == 0 or i == len(samples) - 1:
                     success_count = len([r for r in self.results if r['gender_bias_score'] is not None])
-                    logger.info(f"📊 已处理{i+1}个，成功{success_count}个，成功率{success_count/(i+1)*100:.1f}%")
+                    logger.info(f"📊 Processed {i+1}, successful {success_count}, success rate {success_count/(i+1)*100:.1f}%")
                 
-                # API限流控制
-                time.sleep(1.5)  # 每次请求间隔1.5秒
+                # API rate limiting control
+                time.sleep(1.5)  # 1.5 second interval between requests
                 
             except Exception as e:
-                logger.error(f"处理样本时出错 (PostID: {sample['post_id']}): {e}")
+                logger.error(f"Error processing sample (PostID: {sample['post_id']}): {e}")
     
     def save_results(self) -> None:
         """
-        保存处理结果
+        Save processing results
         """
         if not self.results:
-            logger.warning("没有结果数据可保存")
+            logger.warning("No result data to save")
             return
         
-        # 保存CSV文件
+        # Save CSV file
         csv_path = os.path.join(self.output_dir, "batch_all_results.csv")
         try:
             with open(csv_path, 'w', newline='', encoding='utf-8') as f:
@@ -217,28 +217,28 @@ class SmallBatchProcessor:
                 writer.writeheader()
                 writer.writerows(self.results)
             
-            logger.info(f"结果已保存到: {csv_path}")
+            logger.info(f"Results saved to: {csv_path}")
             
         except Exception as e:
-            logger.error(f"保存CSV结果时出错: {e}")
+            logger.error(f"Error saving CSV results: {e}")
         
-        # 保存JSON文件
+        # Save JSON file
         json_path = os.path.join(self.output_dir, "batch_all_results.json")
         try:
             with open(json_path, 'w', encoding='utf-8') as f:
                 json.dump(self.results, f, indent=2, ensure_ascii=False)
             
-            logger.info(f"JSON结果已保存到: {json_path}")
+            logger.info(f"JSON results saved to: {json_path}")
             
         except Exception as e:
-            logger.error(f"保存JSON结果时出错: {e}")
+            logger.error(f"Error saving JSON results: {e}")
     
     def generate_summary(self) -> None:
         """
-        生成结果摘要
+        Generate result summary
         """
         if not self.results:
-            logger.warning("没有结果数据，无法生成摘要")
+            logger.warning("No result data available, cannot generate summary")
             return
         
         valid_scores = [r['gender_bias_score'] for r in self.results if r['gender_bias_score'] is not None]
@@ -254,51 +254,51 @@ class SmallBatchProcessor:
                 'scores': valid_scores
             }
             
-            logger.info("=== 处理结果摘要 ===")
-            logger.info(f"总样本数: {summary['total_samples']}")
-            logger.info(f"成功获得分数: {summary['valid_scores_count']}")
-            logger.info(f"成功率: {summary['success_rate']:.1f}%")
-            logger.info(f"平均分数: {summary['mean_score']:.2f}")
-            logger.info(f"分数范围: {summary['min_score']:.1f} - {summary['max_score']:.1f}")
-            logger.info(f"所有分数: {summary['scores']}")
+            logger.info("=== Processing Results Summary ===")
+            logger.info(f"Total samples: {summary['total_samples']}")
+            logger.info(f"Successfully obtained scores: {summary['valid_scores_count']}")
+            logger.info(f"Success rate: {summary['success_rate']:.1f}%")
+            logger.info(f"Average score: {summary['mean_score']:.2f}")
+            logger.info(f"Score range: {summary['min_score']:.1f} - {summary['max_score']:.1f}")
+            logger.info(f"All scores: {summary['scores']}")
             
-            # 保存摘要
+            # Save summary
             summary_path = os.path.join(self.output_dir, "summary.json")
             with open(summary_path, 'w', encoding='utf-8') as f:
                 json.dump(summary, f, indent=2, ensure_ascii=False)
             
-            logger.info(f"摘要已保存到: {summary_path}")
+            logger.info(f"Summary saved to: {summary_path}")
         else:
-            logger.warning("没有有效的分数数据")
+            logger.warning("No valid score data available")
     
     def run(self) -> None:
         """
-        运行小批量处理流程
+        Run small batch processing workflow
         """
-        logger.info("🚀 开始处理所有可用样本...")
+        logger.info("🚀 Starting to process all available samples...")
         
-        # 1. 加载样本数据
+        # 1. Load sample data
         samples = self.load_sample_data()
         if not samples:
-            logger.error("❌ 样本加载失败，程序退出")
+            logger.error("❌ Sample loading failed, program exiting")
             return
         
-        # 2. 处理样本
+        # 2. Process samples
         self.process_samples(samples)
         
-        # 3. 保存结果
+        # 3. Save results
         self.save_results()
         
-        # 4. 生成摘要
+        # 4. Generate summary
         self.generate_summary()
         
-        logger.info("✅ 所有样本批量处理完成！")
-        logger.info("💡 如果结果满意，可以运行完整的extract_and_score_samples.py处理50K样本")
+        logger.info("✅ All samples batch processing completed!")
+        logger.info("💡 If results are satisfactory, you can run the complete extract_and_score_samples.py to process 50K samples")
 
 
 def main():
     """
-    主程序入口
+    Main program entry point
     """
     processor = SmallBatchProcessor()
     processor.run()
