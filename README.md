@@ -106,7 +106,7 @@ We started with an existing Instagram dataset containing:
 
 <div align="center">
 
-![Knowledge Distillation Process](https://raw.githubusercontent.com/LunainFin/multi-modal-gender-bias-detection/main/visualization/knowledge_distillation_process.png)
+![Knowledge Distillation Process](https://github.com/LunainFin/multi-modal-gender-bias-detection/blob/main/visualization/knowledge_distillation_process.png)
 
 *Complete pipeline: from data collection to lightweight model deployment*
 
@@ -138,7 +138,7 @@ We created a model that combines image and text analysis:
 - Processes through a few layers to make final prediction
 - Outputs one number (gender bias score 0-10)
 
-![Multi-Modal Architecture](architecture_diagram.png)
+![Multi-Modal Architecture](https://github.com/LunainFin/multi-modal-gender-bias-detection/blob/main/visualization/architecture_diagram.png)
 *Figure 2: Our model takes images and text, processes them separately, then combines the results to make predictions.*
 
 ### Step 4: Training Process
@@ -149,7 +149,7 @@ We trained the small model to copy the large model's predictions:
 - Used the large model's scores as "correct answers" to teach the small model
 - Stopped training when the model stopped improving (around 22 epochs)
 
-![Training Curves](training_curves.png)
+![Training Curves](https://github.com/LunainFin/multi-modal-gender-bias-detection/blob/main/visualization/training_curves.png?raw=true)
 *Figure 3: Training progress showing how the model's accuracy improved over time and when we stopped training.*
 
 ## Results
@@ -165,7 +165,7 @@ We tested our small model against the large model to see how close the predictio
 - About 68% of predictions were within ±1.0 of the large model
 - About 89% of predictions were within ±2.0 of the large model
 
-![Model Performance Comparison](model_performance_comparison.png)
+![Model Performance Comparison](https://github.com/LunainFin/multi-modal-gender-bias-detection/blob/main/visualization/model_performance_comparison.png)
 *Figure 4: Comparison showing our model vs text-only, image-only, and the large teacher model across different metrics.*
 
 ### Speed and Efficiency 
